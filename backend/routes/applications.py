@@ -1,4 +1,5 @@
 import json
+import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Application, Candidate, Job, Resume
@@ -143,25 +144,36 @@ def update_status(app_id):
         app.ai_score = data['ai_score']
     if 'ai_feedback' in data:
         app.ai_feedback = data['ai_feedback']
-
     db.session.commit()
 
-    # n8n webhook — send email notification
+    # Send email via Mailtrap
+    print("DEBUG: Starting email send...")
     try:
         from models import User, Candidate
         candidate = Candidate.query.get(app.candidate_id)
+        print(f"DEBUG: candidate found: {candidate}")
         if candidate:
             user = User.query.get(candidate.user_id)
-            if user:
-                requests.post('http://localhost:5678/webhook/status-change', json={
-                    'application_id': app_id,
-                    'candidate_name': user.full_name,
-                    'candidate_email': user.email,
-                    'job_id': app.job_id,
-                    'new_status': app.status
-                }, timeout=2)
+            print(f"DEBUG: user found: {user}, email: {user.email if user else 'N/A'}")
+            if user and user.email:
+                print(f"DEBUG: Sending to {user.email}")
+                resp = requests.post('https://send.api.mailtrap.io/api/send',
+                    headers={
+                        'Authorization': 'Bearer YOUR_MAILTRAP_TOKEN',
+                        'Content-Type': 'application/json'
+                    },
+                    json={
+                        'from': {'email': 'hello@demomailtrap.co', 'name': 'Recroot'},
+                        'to': [{'email': user.email}],
+                        'subject': f'Recroot - Application {app.status}',
+                        'text': f'Hello {user.full_name}, your application has been {app.status}.'
+                    },
+                    timeout=5
+                )
+                print(f"DEBUG: Mailtrap response: {resp.status_code} - {resp.text}")
     except Exception as e:
-        print(f"n8n webhook skipped: {e}")
+        import traceback
+        print(f"Email failed: {e}")
+        traceback.print_exc()
 
     return jsonify({'message': 'Application updated'}), 200
-    

@@ -20,7 +20,20 @@ def register():
     )
     db.session.add(user)
     db.session.commit()
+    if data['role'] == 'candidate':
+        from models import Candidate
+        new_candidate = Candidate(user_id=user.user_id)
+        db.session.add(new_candidate)
+        db.session.commit()
     
+    if data['role'] == 'recruiter':
+        from models import Company
+        new_company = Company(
+            user_id=user.user_id,
+            company_name=data.get('company_name', f"{data['full_name']}'s Company")
+        )
+        db.session.add(new_company)
+        db.session.commit()
     return jsonify({'message': 'User registered successfully'}), 201
 
 # Login
