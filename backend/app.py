@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager
 from config import Config
 from models import db
 from routes.applications import apps_bp
+from routes.resumes import resumes_bp
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(jobs_bp, url_prefix='/api')  # <-- ADD THIS
     app.register_blueprint(apps_bp, url_prefix='/api')
+    app.register_blueprint(resumes_bp, url_prefix='/api')
     with app.app_context():
         db.create_all()
     

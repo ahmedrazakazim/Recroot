@@ -30,6 +30,8 @@ class Job(db.Model):
     requirements = db.Column(db.Text)
     status = db.Column(db.Enum('open', 'closed'), default='open')
     deadline = db.Column(db.Date)
+    job_type = db.Column(db.String(20), default='Full-time')       
+    salary_range = db.Column(db.String(50), nullable=True)          
     created_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
 class Candidate(db.Model):

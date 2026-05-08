@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
@@ -10,10 +10,15 @@ export default function Login() {
     const [error, setError] = useState('')
     const navigate = useNavigate()
 
+    useEffect(() => {
+        if (localStorage.getItem('token')) {
+            navigate('/')
+        }
+    }, [])
+
     const handleLogin = async (e) => {
         e.preventDefault()
         setError('')
-
         try {
             const res = await axios.post(`${API}/login`, { email, password })
             localStorage.setItem('token', res.data.token)
@@ -26,27 +31,53 @@ export default function Login() {
         }
     }
 
+    if (localStorage.getItem('token')) return null
+
     return (
-        <div className="page-container">
-            <div className="glass-card">
-                <h2 style={{ textAlign: 'center', marginBottom: 30, fontSize: 26 }}>Welcome Back</h2>
+        <div className="auth-page">
+            <div className="auth-left">
+                <div className="auth-left-content">
+                    <h2>Welcome Back!</h2>
+                    <p>Log in to access your dashboard, track applications, and connect with top talent.</p>
+                </div>
+            </div>
 
-                {error && <div className="error">{error}</div>}
+            <div className="auth-right">
+                <div className="auth-card">
+                    <h3>Sign In</h3>
+                    <p className="subtitle">Enter your credentials to continue</p>
 
-                <form onSubmit={handleLogin}>
-                    <div className="input-group">
-                        <label>Email</label>
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    {error && <div className="error">{error}</div>}
+
+                    <form onSubmit={handleLogin}>
+                        <div className="input-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: 8 }}>
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div className="link-text">
+                        Don't have an account? <Link to="/register">Create one</Link>
                     </div>
-                    <div className="input-group">
-                        <label>Password</label>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
-                    <button type="submit" className="btn btn-primary">Login</button>
-                </form>
-
-                <div className="link-text">
-                    Don't have an account? <Link to="/register">Register</Link>
                 </div>
             </div>
         </div>

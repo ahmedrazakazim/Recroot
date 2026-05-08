@@ -86,3 +86,51 @@ def delete_job(job_id):
     db.session.delete(job)
     db.session.commit()
     return jsonify({'message': 'Job deleted'}), 200
+
+
+# Get recruiter's own jobs
+@jobs_bp.route('/jobs/mine', methods=['GET'])
+@jwt_required()
+def my_jobs():
+    user_id = int(get_jwt_identity())
+    company = Company.query.filter_by(user_id=user_id).first()
+    if not company:
+        return jsonify([]), 200
+    
+    jobs = Job.query.filter_by(company_id=company.company_id).all()
+    result = []
+    for j in jobs:
+        result.append({
+    'job_id': j.job_id,
+    'title': j.title,
+    'description': j.description,
+    'requirements': j.requirements,
+    'company': company.company_name,
+    'status': j.status,
+    'job_type': getattr(j, 'job_type', 'Full-time'),
+    'salary_range': getattr(j, 'salary_range', None),
+    'deadline': str(j.deadline) if j.deadline else None,
+    'created_at': str(j.created_at)
+})
+    return jsonify(result), 200
+
+
+# Get applications for a job (recruiter view)
+@jobs_bp.route('/jobs/<int:job_id>/applicants', methods=['GET'])
+@jwt_required()
+def job_applicants(job_id):
+    from models import Application, Candidate, User
+    apps = Application.query.filter_by(job_id=job_id).order_by(Application.ai_score.desc()).all()
+    result = []
+    for a in apps:
+        candidate = Candidate.query.get(a.candidate_id)
+        user = User.query.get(candidate.user_id) if candidate else None
+        result.append({
+            'application_id': a.application_id,
+            'candidate_name': user.full_name if user else 'Unknown',
+            'status': a.status,
+            'ai_score': float(a.ai_score) if a.ai_score else None,
+            'ai_feedback': a.ai_feedback,
+            'applied_at': str(a.applied_at)
+        })
+    return jsonify(result), 200

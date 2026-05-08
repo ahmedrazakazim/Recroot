@@ -92,12 +92,14 @@ def my_applications():
     for a in apps:
         job = Job.query.get(a.job_id)
         result.append({
-            'application_id': a.application_id,
-            'job_title': job.title if job else 'Unknown',
-            'status': a.status,
-            'ai_score': float(a.ai_score) if a.ai_score else None,
-            'applied_at': str(a.applied_at)
-        })
+    'application_id': a.application_id,
+    'job_id': a.job_id,
+    'job_title': job.title if job else 'Unknown',
+    'status': a.status,
+    'ai_score': float(a.ai_score) if a.ai_score else None,
+    'ai_feedback': a.ai_feedback,
+    'applied_at': str(a.applied_at)
+})
     return jsonify(result), 200
 
 
@@ -116,14 +118,13 @@ def job_applications(job_id):
         candidate = Candidate.query.get(a.candidate_id)
         user = candidate.user if candidate else None
         result.append({
-            'application_id': a.application_id,
-            'candidate_name': user.full_name if user else 'Unknown',
-            'candidate_id': a.candidate_id,
-            'status': a.status,
-            'ai_score': float(a.ai_score) if a.ai_score else None,
-            'ai_feedback': a.ai_feedback,
-            'applied_at': str(a.applied_at)
-        })
+    'application_id': a.application_id,
+    'job_title': job.title if job else 'Unknown',
+    'status': a.status,
+    'ai_score': float(a.ai_score) if a.ai_score else None,
+    'ai_feedback': a.ai_feedback,           # <-- ADD THIS LINE
+    'applied_at': str(a.applied_at)
+})
     return jsonify(result), 200
 
 

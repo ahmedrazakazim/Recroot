@@ -15,12 +15,18 @@ export default function RecruiterDashboard() {
 
     useEffect(() => {
         if (!token) return navigate('/login')
-        axios.get(`${API}/jobs`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API}/jobs/mine`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => {
                 setJobs(res.data)
                 setStats({ total: res.data.length, active: res.data.filter(j => j.status === 'open').length })
                 setLoading(false)
-            }).catch(() => setLoading(false))
+            }).catch(err => {
+                if (err.response?.status === 401) {
+                    localStorage.clear()
+                    navigate('/login')
+                }
+                setLoading(false)
+            })
     }, [])
 
     const handleCreateJob = async (e) => {
@@ -33,6 +39,10 @@ export default function RecruiterDashboard() {
             setForm({ title: '', description: '', requirements: '', deadline: '' })
             window.location.reload()
         } catch (err) {
+            if (err.response?.status === 401) {
+                localStorage.clear()
+                navigate('/login')
+            }
             alert(err.response?.data?.error || 'Failed to create job')
         }
     }
@@ -120,8 +130,8 @@ export default function RecruiterDashboard() {
                                     </td>
                                     <td>
                                         <button className="btn btn-sm btn-primary"
-                                            onClick={() => navigate(`/jobs/${job.job_id}`)}>
-                                            View
+                                            onClick={() => navigate(`/jobs/${job.job_id}/applicants`)}>
+                                            View Applicants
                                         </button>
                                     </td>
                                 </tr>

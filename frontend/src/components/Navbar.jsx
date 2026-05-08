@@ -37,13 +37,18 @@ function Navbar() {
                 )}
 
                 {token && role === 'admin' && (
-                    <Link to="/dashboard">Admin Panel</Link>
+                    <Link to="/admin">Admin Panel</Link>
                 )}
 
                 {token && (
-                    <a href="#" onClick={handleLogout} style={{ color: '#ff5252' }}>
-                        Logout
-                    </a>
+                    <>
+                        <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+                            {localStorage.getItem('name')}
+                        </span>
+                        <a href="#" onClick={handleLogout} style={{ color: 'rgba(255,255,255,0.85)' }}>
+                            Logout
+                        </a>
+                    </>
                 )}
             </div>
         </nav>
