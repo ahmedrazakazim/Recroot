@@ -145,4 +145,23 @@ def update_status(app_id):
         app.ai_feedback = data['ai_feedback']
 
     db.session.commit()
+
+    # n8n webhook — send email notification
+    try:
+        from models import User, Candidate
+        candidate = Candidate.query.get(app.candidate_id)
+        if candidate:
+            user = User.query.get(candidate.user_id)
+            if user:
+                requests.post('http://localhost:5678/webhook/status-change', json={
+                    'application_id': app_id,
+                    'candidate_name': user.full_name,
+                    'candidate_email': user.email,
+                    'job_id': app.job_id,
+                    'new_status': app.status
+                }, timeout=2)
+    except Exception as e:
+        print(f"n8n webhook skipped: {e}")
+
     return jsonify({'message': 'Application updated'}), 200
+    
