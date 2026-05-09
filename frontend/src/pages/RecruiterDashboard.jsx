@@ -6,54 +6,58 @@ const API = 'http://127.0.0.1:5000/api'
 
 export default function RecruiterDashboard() {
     const [jobs, setJobs] = useState([])
+    const [companies, setCompanies] = useState([])
     const [stats, setStats] = useState({ total: 0, active: 0 })
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
     const [editingJobId, setEditingJobId] = useState(null)
     const [form, setForm] = useState({
         title: '', description: '', requirements: '', deadline: '',
-        job_type: 'Full-time', salary_range: ''
+        job_type: 'Full-time', salary_range: '', company_id: '', anonymous: false
     })
     const navigate = useNavigate()
     const token = localStorage.getItem('token')
 
     useEffect(() => {
         if (!token) return navigate('/login')
+
         axios.get(`${API}/jobs/mine`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => {
                 setJobs(res.data)
                 setStats({ total: res.data.length, active: res.data.filter(j => j.status === 'open').length })
-                setLoading(false)
             }).catch(err => {
-                if (err.response?.status === 401) {
-                    localStorage.clear()
-                    navigate('/login')
-                }
-                setLoading(false)
+                if (err.response?.status === 401) { localStorage.clear(); navigate('/login') }
             })
+
+        // Fetch recruiter's companies
+        axios.get(`${API}/companies/mine`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => setCompanies(res.data))
+            .catch(() => { })
+
+        setLoading(false)
     }, [])
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
+            const payload = { ...form }
+            if (!payload.company_id) delete payload.company_id
+
             if (editingJobId) {
-                await axios.put(`${API}/jobs/${editingJobId}`, form, {
+                await axios.put(`${API}/jobs/${editingJobId}`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             } else {
-                await axios.post(`${API}/jobs`, form, {
+                await axios.post(`${API}/jobs`, payload, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             }
             setShowForm(false)
             setEditingJobId(null)
-            setForm({ title: '', description: '', requirements: '', deadline: '', job_type: 'Full-time', salary_range: '' })
+            setForm({ title: '', description: '', requirements: '', deadline: '', job_type: 'Full-time', salary_range: '', company_id: '', anonymous: false })
             window.location.reload()
         } catch (err) {
-            if (err.response?.status === 401) {
-                localStorage.clear()
-                navigate('/login')
-            }
+            if (err.response?.status === 401) { localStorage.clear(); navigate('/login') }
             alert(err.response?.data?.error || 'Failed to save job')
         }
     }
@@ -61,14 +65,10 @@ export default function RecruiterDashboard() {
     const handleDeleteJob = async (jobId) => {
         if (!confirm('Delete this job permanently? All applications will be lost.')) return
         try {
-            await axios.delete(`${API}/jobs/${jobId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
+            await axios.delete(`${API}/jobs/${jobId}`, { headers: { Authorization: `Bearer ${token}` } })
             setJobs(prev => prev.filter(j => j.job_id !== jobId))
             setStats(prev => ({ ...prev, total: prev.total - 1 }))
-        } catch (err) {
-            alert('Delete failed')
-        }
+        } catch (err) { alert('Delete failed') }
     }
 
     const handleEdit = (job) => {
@@ -78,11 +78,13 @@ export default function RecruiterDashboard() {
             requirements: job.requirements || '',
             deadline: job.deadline || '',
             job_type: job.job_type || 'Full-time',
-            salary_range: job.salary_range || ''
+            salary_range: job.salary_range || '',
+            company_id: job.company_id || '',
+            anonymous: job.anonymous || false
         })
         setEditingJobId(job.job_id)
         setShowForm(true)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
     if (loading) return <div className="loading">Loading...</div>
@@ -94,7 +96,7 @@ export default function RecruiterDashboard() {
                 <button className="btn btn-primary" style={{ width: 'auto' }}
                     onClick={() => {
                         setEditingJobId(null)
-                        setForm({ title: '', description: '', requirements: '', deadline: '', job_type: 'Full-time', salary_range: '' })
+                        setForm({ title: '', description: '', requirements: '', deadline: '', job_type: 'Full-time', salary_range: '', company_id: '', anonymous: false })
                         setShowForm(!showForm)
                     }}>
                     + New Job
@@ -102,14 +104,8 @@ export default function RecruiterDashboard() {
             </div>
 
             <div className="stats-row">
-                <div className="stat-card">
-                    <div className="stat-value">{stats.total}</div>
-                    <div className="stat-label">Total Jobs</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-value">{stats.active}</div>
-                    <div className="stat-label">Active</div>
-                </div>
+                <div className="stat-card"><div className="stat-value">{stats.total}</div><div className="stat-label">Total Jobs</div></div>
+                <div className="stat-card"><div className="stat-value">{stats.active}</div><div className="stat-label">Active</div></div>
             </div>
 
             {showForm && (
@@ -151,6 +147,23 @@ export default function RecruiterDashboard() {
                                     placeholder="e.g. 150K-250K or Competitive" />
                             </div>
                         </div>
+                        {companies.length > 0 && (
+                            <div className="input-group">
+                                <label>Company</label>
+                                <select value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value })}>
+                                    <option value="">Default Company</option>
+                                    {companies.map(c => (
+                                        <option key={c.company_id} value={c.company_id}>{c.company_name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <label style={{ marginBottom: 0 }}>Post Anonymously</label>
+                            <input type="checkbox" checked={form.anonymous}
+                                onChange={e => setForm({ ...form, anonymous: e.target.checked })} />
+                            <span style={{ fontSize: 12, color: '#78716C' }}>Company name hidden from candidates</span>
+                        </div>
                         <div className="input-group">
                             <label>Deadline</label>
                             <input type="date" value={form.deadline}
@@ -168,48 +181,23 @@ export default function RecruiterDashboard() {
                     <h3 style={{ fontSize: 16, fontWeight: 600 }}>Your Jobs</h3>
                 </div>
                 {jobs.length === 0 ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: '#78716C' }}>
-                        <p>No jobs posted yet</p>
-                    </div>
+                    <div style={{ padding: 40, textAlign: 'center', color: '#78716C' }}><p>No jobs posted yet</p></div>
                 ) : (
                     <table className="data-table">
                         <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Type</th>
-                                <th>Status</th>
-                                <th>Deadline</th>
-                                <th>Actions</th>
-                            </tr>
+                            <tr><th>Title</th><th>Type</th><th>Status</th><th>Deadline</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             {jobs.map(job => (
                                 <tr key={job.job_id}>
                                     <td style={{ fontWeight: 600 }}>{job.title}</td>
-                                    <td>
-                                        {job.job_type && (
-                                            <span className={`job-type-badge job-type-${(job.job_type || '').toLowerCase().replace(' ', '')}`}>
-                                                {job.job_type}
-                                            </span>
-                                        )}
-                                    </td>
+                                    <td>{job.job_type && <span className={`job-type-badge job-type-${(job.job_type || '').toLowerCase().replace(' ', '')}`}>{job.job_type}</span>}</td>
                                     <td><span className="badge badge-shortlisted">{job.status}</span></td>
-                                    <td style={{ color: '#78716C', fontSize: 12 }}>
-                                        {job.deadline ? new Date(job.deadline).toLocaleDateString() : '—'}
-                                    </td>
+                                    <td style={{ color: '#78716C', fontSize: 12 }}>{job.deadline ? new Date(job.deadline).toLocaleDateString() : '—'}</td>
                                     <td>
-                                        <button className="btn btn-sm btn-primary"
-                                            onClick={() => navigate(`/jobs/${job.job_id}/applicants`)}>
-                                            View Applicants
-                                        </button>
-                                        <button className="btn btn-sm btn-outline" style={{ marginLeft: 6 }}
-                                            onClick={() => handleEdit(job)}>
-                                            Edit
-                                        </button>
-                                        <button className="btn btn-sm btn-danger" style={{ marginLeft: 6 }}
-                                            onClick={() => handleDeleteJob(job.job_id)}>
-                                            Delete
-                                        </button>
+                                        <button className="btn btn-sm btn-primary" onClick={() => navigate(`/jobs/${job.job_id}/applicants`)}>View Applicants</button>
+                                        <button className="btn btn-sm btn-outline" style={{ marginLeft: 6 }} onClick={() => handleEdit(job)}>Edit</button>
+                                        <button className="btn btn-sm btn-danger" style={{ marginLeft: 6 }} onClick={() => handleDeleteJob(job.job_id)}>Delete</button>
                                     </td>
                                 </tr>
                             ))}

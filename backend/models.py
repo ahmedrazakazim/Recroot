@@ -29,6 +29,7 @@ class Job(db.Model):
     description = db.Column(db.Text)
     requirements = db.Column(db.Text)
     status = db.Column(db.Enum('open', 'closed'), default='open')
+    anonymous = db.Column(db.Boolean, default=False)
     deadline = db.Column(db.Date)
     job_type = db.Column(db.String(20), default='Full-time')       
     salary_range = db.Column(db.String(50), nullable=True)          

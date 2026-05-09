@@ -140,3 +140,59 @@ def get_notifications():
         'is_read': n.is_read,
         'created_at': str(n.created_at)
     } for n in notifs]), 200
+
+
+# Get all companies
+@auth_bp.route('/admin/companies', methods=['GET'])
+@jwt_required()
+def admin_companies():
+    from models import Company
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    companies = Company.query.all()
+    return jsonify([{
+        'company_id': c.company_id,
+        'company_name': c.company_name,
+        'industry': c.industry,
+        'location': c.location,
+        'user_id': c.user_id
+    } for c in companies]), 200
+
+# Create company
+@auth_bp.route('/admin/companies', methods=['POST'])
+@jwt_required()
+def create_company():
+    from models import Company
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.get_json()
+    company = Company(
+        company_name=data['company_name'],
+        industry=data.get('industry', ''),
+        location=data.get('location', ''),
+        user_id=data.get('user_id')
+    )
+    db.session.add(company)
+    db.session.commit()
+    return jsonify({'message': 'Company created', 'company_id': company.company_id}), 201
+
+# Delete company
+@auth_bp.route('/admin/companies/<int:company_id>', methods=['DELETE'])
+@jwt_required()
+def delete_company(company_id):
+    from models import Company
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    company = Company.query.get_or_404(company_id)
+    db.session.delete(company)
+    db.session.commit()
+    return jsonify({'message': 'Company deleted'}), 200

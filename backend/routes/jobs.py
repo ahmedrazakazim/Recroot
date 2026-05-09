@@ -18,7 +18,7 @@ def get_jobs():
             'title': j.title,
             'description': j.description,
             'requirements': j.requirements,
-            'company': company.company_name if company else 'Unknown',
+            'company': 'Confidential' if getattr(j, 'anonymous', False) else (company.company_name if company else 'Unknown'),
             'deadline': str(j.deadline) if j.deadline else None,
             'created_at': str(j.created_at)
         })
@@ -47,24 +47,28 @@ def create_job():
     user_id = int(get_jwt_identity())
     data = request.get_json()
     
-    company = Company.query.filter_by(user_id=user_id).first()
-    if not company:
-        return jsonify({'error': 'No company profile found. Create a company first.'}), 400
+    # Use provided company_id or find recruiter's default company
+    company_id = data.get('company_id')
+    if not company_id:
+        company = Company.query.filter_by(user_id=user_id).first()
+        if not company:
+            return jsonify({'error': 'No company profile found. Create a company first.'}), 400
+        company_id = company.company_id
     
     job = Job(
-    company_id=company.company_id,
-    title=data['title'],
-    description=data.get('description'),
-    requirements=data.get('requirements'),
-    deadline=data.get('deadline'),
-    job_type=data.get('job_type', 'Full-time'),
-    salary_range=data.get('salary_range')
-)
+        company_id=company_id,
+        title=data['title'],
+        description=data.get('description'),
+        requirements=data.get('requirements'),
+        deadline=data.get('deadline'),
+        job_type=data.get('job_type', 'Full-time'),
+        salary_range=data.get('salary_range'),
+        anonymous=data.get('anonymous', False)
+    )
     db.session.add(job)
     db.session.commit()
     
     return jsonify({'message': 'Job created', 'job_id': job.job_id}), 201
-
 # Update job status
 @jobs_bp.route('/jobs/<int:job_id>', methods=['PUT'])
 @jwt_required()
@@ -176,3 +180,14 @@ def screen_resume_route():
         }), 200
     except Exception as e:
         return jsonify({'error': f'Screening failed: {str(e)}'}), 500
+    
+
+@jobs_bp.route('/companies/mine', methods=['GET'])
+@jwt_required()
+def my_companies():
+    user_id = int(get_jwt_identity())
+    companies = Company.query.filter_by(user_id=user_id).all()
+    return jsonify([{
+        'company_id': c.company_id,
+        'company_name': c.company_name
+    } for c in companies]), 200
