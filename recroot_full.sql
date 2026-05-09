@@ -438,3 +438,4 @@ SET character_set_client = @saved_cs_client;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-05-09 22:33:05
+ALTER TABLE applications MODIFY status ENUM('pending','shortlisted','rejected','interview_scheduled','hired') DEFAULT 'pending'; 

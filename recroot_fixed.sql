@@ -89,3 +89,4 @@ show tables;
 
 
 
+ALTER TABLE applications MODIFY status ENUM('pending','shortlisted','rejected','interview_scheduled','hired') DEFAULT 'pending'; 
