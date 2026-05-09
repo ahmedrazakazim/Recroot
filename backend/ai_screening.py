@@ -3,38 +3,42 @@ import os
 from groq import Groq
 
 def screen_resume(resume_text, job_description):
-    """Send resume + job description to Groq API. Falls back to Mistral if needed."""
+    """Screen resume with Groq. Returns score, strengths, gaps, and interview questions."""
     
-    # Try Groq first
-    try:
-        client = Groq(api_key=os.getenv('GROQ_API_KEY'))
-        return _call_llm(client, resume_text, job_description, provider='groq')
-    except Exception as e:
-        print(f"Groq failed: {e}, trying Mistral fallback...")
-        # In production, swap to Mistral client here
-        # For now, return a graceful failure
-        raise Exception(f"AI screening unavailable: {e}")
-
-
-def _call_llm(client, resume_text, job_description, provider='groq'):
-    """Make the actual LLM call with prompt engineering."""
+    client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     
-    prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting. 
-Your task is to analyze a candidate's resume against a job description and produce a structured evaluation.
+    # Call 1: Deterministic scoring at temperature 0.3
+    score_result = _get_score_and_feedback(client, resume_text, job_description)
+    
+    # Call 2: Creative question generation at temperature 0.7
+    questions = _get_interview_questions(client, resume_text, job_description)
+    
+    return {
+        'score': score_result['score'],
+        'strengths': score_result['strengths'],
+        'gaps': score_result['gaps'],
+        'questions': questions
+    }
 
-Return ONLY valid JSON in this exact format (no markdown, no extra text):
+
+def _get_score_and_feedback(client, resume_text, job_description):
+    """Deterministic call: strict scoring at temperature 0.3."""
+    
+    prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting.
+Analyze this resume against the job description and produce a structured evaluation.
+
+Return ONLY valid JSON (no markdown, no extra text):
 {{
     "score": <number between 0-100>,
-    "strengths": "<2-3 sentences highlighting specific matching skills and experience>",
-    "gaps": "<2-3 sentences identifying missing qualifications or experience>",
-    "questions": ["<tailored technical question 1>", "<question 2>", "<question 3>", "<question 4>", "<question 5>"]
+    "strengths": "<2-3 sentences highlighting specific matching skills>",
+    "gaps": "<2-3 sentences identifying missing qualifications>"
 }}
 
-Example of expected output quality:
-For a Python developer role:
-- If candidate knows Python but not Flask: score 60-75, gaps mention Flask missing
-- If candidate knows Python + Flask + SQL: score 85-95
-- If candidate has no relevant experience: score 10-25
+Scoring examples:
+- Candidate matches all required skills + has bonus experience: 85-95
+- Candidate matches most required skills, missing 1-2: 60-75
+- Candidate has relevant background but missing key requirements: 30-55
+- Candidate has no relevant experience: 10-25
 
 Job Description:
 {job_description}
@@ -42,30 +46,70 @@ Job Description:
 Resume:
 {resume_text}"""
 
-    if provider == 'groq':
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": "You are an expert HR recruiter. Always respond with ONLY valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=1000
-        )
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": "You are an expert HR recruiter. Always respond with ONLY valid JSON. No markdown, no explanation."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3,
+        max_tokens=500
+    )
+    
+    return _parse_json(response.choices[0].message.content)
+
+
+def _get_interview_questions(client, resume_text, job_description):
+    """Creative call: generate tailored interview questions at temperature 0.7."""
+    
+    prompt = f"""You are a thoughtful technical interviewer. Based on the candidate's resume and the job description, 
+generate 5 tailored interview questions that probe their experience, skills, and potential gaps.
+
+Return ONLY a JSON array of strings:
+["Question 1?", "Question 2?", "Question 3?", "Question 4?", "Question 5?"]
+
+Focus on:
+- Questions that reveal depth of experience
+- Questions about technologies mentioned in the job but not the resume
+- Behavioral questions about teamwork and problem-solving
+- One question about how they handle unfamiliar tech
+
+Job Description:
+{job_description}
+
+Resume:
+{resume_text}"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {"role": "system", "content": "You are an expert technical interviewer. Return ONLY a JSON array of 5 strings."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=400
+    )
+    
+    result = _parse_json(response.choices[0].message.content)
+    
+    # Ensure we got a list of strings
+    if isinstance(result, list):
+        return result
+    elif isinstance(result, dict) and 'questions' in result:
+        return result['questions']
     else:
-        # Mistral fallback would go here
-        raise Exception("Mistral not configured")
-    
-    result = response.choices[0].message.content
-    
-    # Extract JSON (handle markdown wrapping)
-    result = result.strip()
-    if result.startswith("```json"):
-        result = result[7:]
-    if result.startswith("```"):
-        result = result[3:]
-    if result.endswith("```"):
-        result = result[:-3]
-    result = result.strip()
-    
-    return json.loads(result)
+        return ["Tell me about your experience.", "What are your strengths?", 
+                "Where do you see yourself in 5 years?", "Why this role?", 
+                "Do you have any questions for us?"]
+
+
+def _parse_json(raw):
+    """Extract JSON from LLM response (handles markdown wrapping)."""
+    raw = raw.strip()
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    elif raw.startswith("```"):
+        raw = raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    return json.loads(raw.strip())
