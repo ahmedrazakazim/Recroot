@@ -56,7 +56,7 @@ class Application(db.Model):
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.candidate_id'), nullable=False)
     job_id = db.Column(db.Integer, db.ForeignKey('jobs.job_id'), nullable=False)
     resume_id = db.Column(db.Integer, db.ForeignKey('resumes.resume_id'))
-    status = db.Column(db.Enum('pending', 'shortlisted', 'rejected', 'interview_scheduled'), default='pending')
+    status = db.Column(db.Enum('pending', 'shortlisted', 'rejected', 'interview_scheduled', 'hired'), default='pending')
     ai_score = db.Column(db.Numeric(5, 2))
     ai_feedback = db.Column(db.Text)
     applied_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
