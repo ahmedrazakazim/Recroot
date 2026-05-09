@@ -18,10 +18,10 @@ def create_app():
     JWTManager(app)
     
     from routes.auth import auth_bp
-    from routes.jobs import jobs_bp          # <-- ADD THIS
+    from routes.jobs import jobs_bp         
     
     app.register_blueprint(auth_bp, url_prefix='/api')
-    app.register_blueprint(jobs_bp, url_prefix='/api')  # <-- ADD THIS
+    app.register_blueprint(jobs_bp, url_prefix='/api') 
     app.register_blueprint(apps_bp, url_prefix='/api')
     app.register_blueprint(resumes_bp, url_prefix='/api')
     with app.app_context():
