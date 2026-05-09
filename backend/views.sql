@@ -1,8 +1,12 @@
 USE recroot;
 
--- ---------------------------------------------------------------
--- VIEW 1: Ranked Applicants (all jobs)
--- ---------------------------------------------------------------
+-- Drop existing views to allow recreation
+DROP VIEW IF EXISTS v_ranked_applicants;
+DROP VIEW IF EXISTS v_job_stats;
+DROP VIEW IF EXISTS v_candidate_dashboard;
+DROP VIEW IF EXISTS v_job_deadlines;
+
+-- VIEW 1
 CREATE VIEW v_ranked_applicants AS
 SELECT 
     j.title AS job_title,
@@ -21,9 +25,7 @@ JOIN users u ON c.user_id = u.user_id
 JOIN jobs j ON a.job_id = j.job_id
 ORDER BY j.job_id, weighted_score DESC;
 
--- ---------------------------------------------------------------
--- VIEW 2: Job Statistics
--- ---------------------------------------------------------------
+-- VIEW 2
 CREATE VIEW v_job_stats AS
 SELECT 
     j.job_id,
@@ -39,9 +41,7 @@ JOIN companies c ON j.company_id = c.company_id
 LEFT JOIN applications a ON j.job_id = a.job_id
 GROUP BY j.job_id, j.title, c.company_name;
 
--- ---------------------------------------------------------------
--- VIEW 3: Candidate Dashboard
--- ---------------------------------------------------------------
+-- VIEW 3
 CREATE VIEW v_candidate_dashboard AS
 SELECT 
     u.user_id,
@@ -59,9 +59,20 @@ LEFT JOIN applications a ON c.candidate_id = a.candidate_id
 WHERE u.role = 'candidate'
 GROUP BY u.user_id, u.full_name, u.email, c.skills, c.experience_years, c.education;
 
--- ---------------------------------------------------------------
--- TRIGGER: Log notification when application status changes
--- ---------------------------------------------------------------
+-- VIEW 4: Job Deadlines with Built-in Functions
+CREATE VIEW v_job_deadlines AS
+SELECT 
+    job_id,
+    title,
+    deadline,
+    DATE_FORMAT(deadline, '%M %d, %Y') AS formatted_deadline,
+    DATEDIFF(deadline, CURDATE()) AS days_remaining,
+    CONCAT(title, ' - ', DATE_FORMAT(deadline, '%b %d')) AS job_summary
+FROM jobs
+WHERE status = 'open';
+
+-- TRIGGER
+DROP TRIGGER IF EXISTS trg_application_status_change;
 DELIMITER //
 CREATE TRIGGER trg_application_status_change
 AFTER UPDATE ON applications

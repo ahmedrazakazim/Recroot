@@ -1,0 +1,77 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "status-change",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b30a2fde-bdaa-49a8-b973-ae9bea97f9dd",
+      "name": "Webhook",
+      "webhookId": "484193df-f04e-41e2-be20-dc4bd982b44f"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.candidate_email }}",
+        "subject": "=Recroot - Application {{ $json.body.new_status }}",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background: #0F766E; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;\">\n    <h1 style=\"color: #fff; margin: 0; font-size: 24px;\">Recroot</h1>\n    <p style=\"color: #ccfbf1; margin: 4px 0 0;\">AI-Powered Recruitment</p>\n  </div>\n  <div style=\"padding: 24px;\">\n    <h2 style=\"color: #1C1917;\">Application Status Update</h2>\n    <p style=\"color: #475569;\">Hello <strong>{{ $json.body.candidate_name }}</strong>,</p>\n    <p style=\"color: #475569;\">Your application for job #{{ $json.body.application_id }} has been updated to:</p>\n    <div style=\"background: #F0FDFA; padding: 12px 16px; border-radius: 6px; margin: 16px 0; text-align: center;\">\n      <span style=\"font-size: 18px; font-weight: 700; color: #0F766E; text-transform: uppercase;\">{{ $json.body.new_status.replace(/_/g, ' ') }}</span>\n    </div>\n    <p style=\"color: #475569;\">Log in to <a href=\"http://localhost:5173\" style=\"color: #0F766E;\">Recroot</a> to view full details.</p>\n  </div>\n  <div style=\"border-top: 1px solid #e0e0e0; padding: 16px 24px; text-align: center;\">\n    <p style=\"color: #78716C; font-size: 12px; margin: 0;\">© 2026 Recroot. All rights reserved.</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        0
+      ],
+      "id": "531631c1-88f5-45bd-afdc-9ed118fa3367",
+      "name": "Send a message",
+      "webhookId": "30efd174-199a-439a-8b01-ef5893e3dc0a",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KbYRpC851gP8SB2h",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "54ef0b80-62f4-4073-9845-a571426f99c1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee6a569a53569b09908e2a978946a147ec4d2e79efea7e65b50c7c0cfa8ae41b"
+  },
+  "id": "4lP9ffqA0P8FzDFe",
+  "tags": []
+}

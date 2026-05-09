@@ -11,9 +11,8 @@ import MyApplications from './pages/MyApplications'
 import RecruiterDashboard from './pages/RecruiterDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import Applicants from './pages/Applicants'
+import Notifications from './pages/Notifications'
 
-// Add this route:
-<Route path="/jobs/:id/applicants" element={<Applicants />} />
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {

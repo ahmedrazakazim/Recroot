@@ -5,6 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Application, Candidate, Job, Resume
 from ai_screening import screen_resume
 
+
 apps_bp = Blueprint('applications', __name__)
 
 # -------------------------------------------------------------------
@@ -118,6 +119,7 @@ def job_applications(job_id):
     for a in apps:
         candidate = Candidate.query.get(a.candidate_id)
         user = candidate.user if candidate else None
+        job = Job.query.get(a.job_id)
         result.append({
     'application_id': a.application_id,
     'job_title': job.title if job else 'Unknown',
@@ -146,34 +148,59 @@ def update_status(app_id):
         app.ai_feedback = data['ai_feedback']
     db.session.commit()
 
-    # Send email via Mailtrap
-    print("DEBUG: Starting email send...")
+    # Send email via n8n Gmail workflow
     try:
         from models import User, Candidate
         candidate = Candidate.query.get(app.candidate_id)
-        print(f"DEBUG: candidate found: {candidate}")
         if candidate:
             user = User.query.get(candidate.user_id)
-            print(f"DEBUG: user found: {user}, email: {user.email if user else 'N/A'}")
             if user and user.email:
-                print(f"DEBUG: Sending to {user.email}")
-                resp = requests.post('https://send.api.mailtrap.io/api/send',
-                    headers={
-                        'Authorization': 'Bearer YOUR_MAILTRAP_TOKEN',
-                        'Content-Type': 'application/json'
-                    },
-                    json={
-                        'from': {'email': 'hello@demomailtrap.co', 'name': 'Recroot'},
-                        'to': [{'email': user.email}],
-                        'subject': f'Recroot - Application {app.status}',
-                        'text': f'Hello {user.full_name}, your application has been {app.status}.'
-                    },
-                    timeout=5
-                )
-                print(f"DEBUG: Mailtrap response: {resp.status_code} - {resp.text}")
+                requests.post('http://localhost:5678/webhook/status-change', json={
+                    'application_id': app_id,
+                    'candidate_name': user.full_name,
+                    'candidate_email': user.email,
+                    'job_id': app.job_id,
+                    'new_status': app.status
+                }, timeout=5)
     except Exception as e:
-        import traceback
-        print(f"Email failed: {e}")
-        traceback.print_exc()
+        print(f"n8n webhook failed: {e}")
 
     return jsonify({'message': 'Application updated'}), 200
+
+
+# Schedule interview
+@apps_bp.route('/applications/<int:app_id>/schedule', methods=['POST'])
+@jwt_required()
+def schedule_interview(app_id):
+    data = request.get_json()
+    app = Application.query.get_or_404(app_id)
+    
+    app.status = 'interview_scheduled'
+    
+    from models import Interview
+    interview = Interview(
+        application_id=app_id,
+        scheduled_at=data.get('scheduled_at'),
+        ai_questions=data.get('ai_questions')
+    )
+    db.session.add(interview)
+    db.session.commit()
+    
+    # Trigger n8n
+    try:
+        from models import User, Candidate
+        candidate = Candidate.query.get(app.candidate_id)
+        if candidate:
+            user = User.query.get(candidate.user_id)
+            if user and user.email:
+                requests.post('http://localhost:5678/webhook/interview-scheduled', json={
+                    'application_id': app_id,
+                    'candidate_name': user.full_name,
+                    'candidate_email': user.email,
+                    'job_id': app.job_id,
+                    'scheduled_at': data.get('scheduled_at')
+                }, timeout=5)
+    except Exception as e:
+        print(f"n8n webhook failed: {e}")
+    
+    return jsonify({'message': 'Interview scheduled'}), 200

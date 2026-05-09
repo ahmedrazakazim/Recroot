@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
+
 const API = 'http://127.0.0.1:5000/api'
 
 export default function MyApplications() {
@@ -24,6 +25,8 @@ export default function MyApplications() {
                 setLoading(false)
             })
     }, [])
+
+
 
     const parseFeedback = (fb) => {
         try {

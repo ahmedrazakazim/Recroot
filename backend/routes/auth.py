@@ -124,3 +124,19 @@ def delete_user(user_id):
     db.session.delete(user)
     db.session.commit()
     return jsonify({'message': 'User deleted'}), 200
+
+
+    # Get notifications for logged-in user
+@auth_bp.route('/notifications', methods=['GET'])
+@jwt_required()
+def get_notifications():
+    from models import Notification
+    user_id = int(get_jwt_identity())
+    notifs = Notification.query.filter_by(user_id=user_id)\
+        .order_by(Notification.created_at.desc()).all()
+    return jsonify([{
+        'notification_id': n.notification_id,
+        'message': n.message,
+        'is_read': n.is_read,
+        'created_at': str(n.created_at)
+    } for n in notifs]), 200

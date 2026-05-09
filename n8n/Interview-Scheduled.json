@@ -1,0 +1,78 @@
+{
+  "name": "Interview-Scheduled",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "interview-scheduled",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9af79831-a384-4142-b26b-008e66f13c64",
+      "name": "Webhook",
+      "webhookId": "ead0f23d-4fe7-4bbf-9d98-42132fb847d2"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.body.candidate_email }}",
+        "subject": "=Recroot - Interview Scheduled",
+        "message": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;\">\n  <div style=\"background: #0F766E; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;\">\n    <h1 style=\"color: #fff; margin: 0; font-size: 24px;\">Recroot</h1>\n    <p style=\"color: #ccfbf1; margin: 4px 0 0;\">AI-Powered Recruitment</p>\n  </div>\n  <div style=\"padding: 24px;\">\n    <h2 style=\"color: #1C1917;\">Interview Scheduled!</h2>\n    <p style=\"color: #475569;\">Hello <strong>{{ $json.body.candidate_name }}</strong>,</p>\n    <p style=\"color: #475569;\">Your interview has been scheduled for:</p>\n    <div style=\"background: #F0FDFA; padding: 12px 16px; border-radius: 6px; margin: 16px 0; text-align: center;\">\n      <span style=\"font-size: 18px; font-weight: 700; color: #0F766E;\">{{ new Date($json.body.scheduled_at).toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>\n    </div>\n    <p style=\"color: #475569;\">Please be available at the scheduled time. Log in to <a href=\"http://localhost:5173\" style=\"color: #0F766E;\">Recroot</a> for details.</p>\n  </div>\n  <div style=\"border-top: 1px solid #e0e0e0; padding: 16px 24px; text-align: center;\">\n    <p style=\"color: #78716C; font-size: 12px; margin: 0;\">© 2026 Recroot. All rights reserved.</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        0
+      ],
+      "id": "9a818d33-d94f-40b1-a42e-fec844784015",
+      "name": "Send a message",
+      "webhookId": "7f7d3207-c586-4ef4-b222-8ea6fb694523",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KbYRpC851gP8SB2h",
+          "name": "Gmail account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "51638d7c-39fc-4e38-bbf2-cd0fbbdaba36",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee6a569a53569b09908e2a978946a147ec4d2e79efea7e65b50c7c0cfa8ae41b"
+  },
+  "id": "FQYGqpYe6BPzK4wq",
+  "tags": []
+}

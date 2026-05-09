@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Job, Company
+from models import db, Job, Company, Resume
+from ai_screening import screen_resume
+import json
 
 jobs_bp = Blueprint('jobs', __name__)
 
@@ -50,12 +52,14 @@ def create_job():
         return jsonify({'error': 'No company profile found. Create a company first.'}), 400
     
     job = Job(
-        company_id=company.company_id,
-        title=data['title'],
-        description=data.get('description'),
-        requirements=data.get('requirements'),
-        deadline=data.get('deadline')
-    )
+    company_id=company.company_id,
+    title=data['title'],
+    description=data.get('description'),
+    requirements=data.get('requirements'),
+    deadline=data.get('deadline'),
+    job_type=data.get('job_type', 'Full-time'),
+    salary_range=data.get('salary_range')
+)
     db.session.add(job)
     db.session.commit()
     
@@ -74,6 +78,10 @@ def update_job(job_id):
         job.title = data['title']
     if 'description' in data:
         job.description = data['description']
+    if 'job_type' in data:
+        job.job_type = data['job_type']
+    if 'salary_range' in data:
+        job.salary_range = data['salary_range']
     
     db.session.commit()
     return jsonify({'message': 'Job updated'}), 200
@@ -134,3 +142,37 @@ def job_applicants(job_id):
             'applied_at': str(a.applied_at)
         })
     return jsonify(result), 200
+
+
+
+# Screening endpoint
+@jobs_bp.route('/screen', methods=['POST'])
+@jwt_required()
+def screen_resume_route():
+    data = request.get_json()
+    resume_id = data.get('resume_id')
+    job_id = data.get('job_id')
+    
+    resume = Resume.query.get(resume_id)
+    job = Job.query.get(job_id)
+    
+    if not resume or not job:
+        return jsonify({'error': 'Resume or job not found'}), 400
+    
+    if not resume.extracted_text:
+        return jsonify({'error': 'No text extracted from resume'}), 400
+    
+    job_desc = job.description + "\n" + (job.requirements or "")
+    
+    try:
+        result = screen_resume(resume.extracted_text, job_desc)
+        return jsonify({
+            'ai_score': result.get('score'),
+            'ai_feedback': json.dumps({
+                'strengths': result.get('strengths'),
+                'gaps': result.get('gaps'),
+                'questions': result.get('questions')
+            })
+        }), 200
+    except Exception as e:
+        return jsonify({'error': f'Screening failed: {str(e)}'}), 500

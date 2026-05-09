@@ -9,6 +9,8 @@ export default function Applicants() {
     const [applicants, setApplicants] = useState([])
     const [job, setJob] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [scheduleModal, setScheduleModal] = useState(null)
+    const [interviewDate, setInterviewDate] = useState('')
     const navigate = useNavigate()
     const token = localStorage.getItem('token')
 
@@ -28,6 +30,16 @@ export default function Applicants() {
             setLoading(false)
         })
     }, [id])
+
+    const handleSchedule = async (appId) => {
+        await axios.post(`${API}/applications/${appId}/schedule`, {
+            scheduled_at: interviewDate,
+            ai_questions: null
+        }, { headers: { Authorization: `Bearer ${token}` } })
+        setScheduleModal(null)
+        setInterviewDate('')
+        window.location.reload()
+    }
 
     const updateStatus = async (appId, newStatus) => {
         try {
@@ -92,19 +104,43 @@ export default function Applicants() {
                                             onChange={(e) => updateStatus(a.application_id, e.target.value)}
                                             style={{
                                                 padding: '6px 10px', borderRadius: 8, border: '1.5px solid #E7E5E4',
-                                                background: '#fff', fontSize: 13, cursor: 'pointer'
+                                                background: '#fff', fontSize: 13, cursor: 'pointer', marginRight: 6
                                             }}
                                         >
                                             <option value="pending">Pending</option>
                                             <option value="shortlisted">Shortlist</option>
                                             <option value="interview_scheduled">Interview</option>
+                                            <option value="hired">Hire</option>
                                             <option value="rejected">Reject</option>
                                         </select>
+                                        {a.status === 'interview_scheduled' && (
+                                            <button className="btn btn-sm btn-outline"
+                                                onClick={() => setScheduleModal(a.application_id)}>
+                                                Schedule
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Schedule Interview Modal */}
+            {scheduleModal && (
+                <div className="modal-overlay" onClick={() => setScheduleModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h3>Schedule Interview</h3>
+                        <div className="input-group">
+                            <label>Interview Date & Time</label>
+                            <input type="datetime-local" value={interviewDate}
+                                onChange={e => setInterviewDate(e.target.value)} />
+                        </div>
+                        <button className="btn btn-primary" onClick={() => handleSchedule(scheduleModal)}>
+                            Schedule Interview
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
