@@ -186,13 +186,19 @@ def create_company():
 @auth_bp.route('/admin/companies/<int:company_id>', methods=['DELETE'])
 @jwt_required()
 def delete_company(company_id):
-    from models import Company
+    from models import Company, Job
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if user.role != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
     company = Company.query.get_or_404(company_id)
+    
+    # Check for linked jobs
+    job_count = Job.query.filter_by(company_id=company_id).count()
+    if job_count > 0:
+        return jsonify({'error': f'Cannot delete: {job_count} job(s) linked to this company. Delete jobs first.'}), 400
+    
     db.session.delete(company)
     db.session.commit()
     return jsonify({'message': 'Company deleted'}), 200
