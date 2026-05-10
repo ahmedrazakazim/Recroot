@@ -13,6 +13,7 @@ export default function AdminDashboard() {
     const [companyForm, setCompanyForm] = useState({ company_name: '', industry: '', location: '', user_id: '' })
     const [showCompanyForm, setShowCompanyForm] = useState(false)
     const [deleteModal, setDeleteModal] = useState(null)
+    const [deleteError, setDeleteError] = useState('')
     const navigate = useNavigate()
     const token = localStorage.getItem('token')
 
@@ -39,6 +40,7 @@ export default function AdminDashboard() {
 
     const confirmDelete = async () => {
         if (!deleteModal) return
+        setDeleteError('')
         try {
             if (deleteModal.type === 'user') {
                 await axios.delete(`${API}/admin/users/${deleteModal.id}`, { headers: { Authorization: `Bearer ${token}` } })
@@ -47,10 +49,10 @@ export default function AdminDashboard() {
                 await axios.delete(`${API}/admin/companies/${deleteModal.id}`, { headers: { Authorization: `Bearer ${token}` } })
                 setCompanies(prev => prev.filter(c => c.company_id !== deleteModal.id))
             }
+            setDeleteModal(null)
         } catch (err) {
-            alert(err.response?.data?.error || 'Delete failed')
+            setDeleteError(err.response?.data?.error || 'Delete failed')
         }
-        setDeleteModal(null)
     }
 
     const createCompany = async (e) => {
@@ -139,14 +141,17 @@ export default function AdminDashboard() {
             )}
 
             {deleteModal && (
-                <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
+                <div className="modal-overlay" onClick={() => { setDeleteModal(null); setDeleteError('') }}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <h3>Confirm Delete</h3>
+                        {deleteError && (
+                            <div className="error" style={{ marginTop: 12 }}>{deleteError}</div>
+                        )}
                         <p style={{ color: '#78716C', margin: '16px 0 24px' }}>
                             Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.
                         </p>
                         <div style={{ display: 'flex', gap: 12 }}>
-                            <button className="btn btn-outline" onClick={() => setDeleteModal(null)}>Cancel</button>
+                            <button className="btn btn-outline" onClick={() => { setDeleteModal(null); setDeleteError('') }}>Cancel</button>
                             <button className="btn btn-danger" onClick={confirmDelete}>Delete</button>
                         </div>
                     </div>
