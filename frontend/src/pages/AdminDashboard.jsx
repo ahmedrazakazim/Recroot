@@ -12,6 +12,7 @@ export default function AdminDashboard() {
     const [tab, setTab] = useState('users')
     const [companyForm, setCompanyForm] = useState({ company_name: '', industry: '', location: '', user_id: '' })
     const [showCompanyForm, setShowCompanyForm] = useState(false)
+    const [deleteModal, setDeleteModal] = useState(null)
     const navigate = useNavigate()
     const token = localStorage.getItem('token')
 
@@ -36,15 +37,21 @@ export default function AdminDashboard() {
         setUsers(prev => prev.map(u => u.user_id === userId ? { ...u, role: newRole } : u))
     }
 
-    const deleteUser = async (userId) => {
-    if (!window.confirm('Delete this user permanently? This action cannot be undone.')) return
-    try {
-        await axios.delete(`${API}/admin/users/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
-        setUsers(prev => prev.filter(u => u.user_id !== userId))
-    } catch (err) {
-        alert(err.response?.data?.error || 'Delete failed')
+    const confirmDelete = async () => {
+        if (!deleteModal) return
+        try {
+            if (deleteModal.type === 'user') {
+                await axios.delete(`${API}/admin/users/${deleteModal.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                setUsers(prev => prev.filter(u => u.user_id !== deleteModal.id))
+            } else {
+                await axios.delete(`${API}/admin/companies/${deleteModal.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                setCompanies(prev => prev.filter(c => c.company_id !== deleteModal.id))
+            }
+        } catch (err) {
+            alert(err.response?.data?.error || 'Delete failed')
+        }
+        setDeleteModal(null)
     }
-}
 
     const createCompany = async (e) => {
         e.preventDefault()
@@ -54,16 +61,6 @@ export default function AdminDashboard() {
         const res = await axios.get(`${API}/admin/companies`, { headers: { Authorization: `Bearer ${token}` } })
         setCompanies(res.data)
     }
-
-    const deleteCompany = async (companyId) => {
-    if (!window.confirm('Delete this company? All associated jobs must be deleted first.')) return
-    try {
-        await axios.delete(`${API}/admin/companies/${companyId}`, { headers: { Authorization: `Bearer ${token}` } })
-        setCompanies(prev => prev.filter(c => c.company_id !== companyId))
-    } catch (err) {
-        alert(err.response?.data?.error || 'Delete failed')
-    }
-}
 
     if (loading) return <div className="loading">Loading admin panel...</div>
 
@@ -102,7 +99,7 @@ export default function AdminDashboard() {
                                             <option value="admin">Admin</option>
                                         </select>
                                     </td>
-                                    <td><button className="btn btn-sm btn-danger" onClick={() => deleteUser(u.user_id)}>Delete</button></td>
+                                    <td><button className="btn btn-sm btn-danger" onClick={() => setDeleteModal({ type: 'user', id: u.user_id })}>Delete</button></td>
                                 </tr>
                             ))}
                         </tbody>
@@ -133,11 +130,26 @@ export default function AdminDashboard() {
                                     <td style={{ fontWeight: 600 }}>{c.company_name}</td>
                                     <td>{c.industry || '—'}</td>
                                     <td>{c.location || '—'}</td>
-                                    <td><button className="btn btn-sm btn-danger" onClick={() => deleteCompany(c.company_id)}>Delete</button></td>
+                                    <td><button className="btn btn-sm btn-danger" onClick={() => setDeleteModal({ type: 'company', id: c.company_id })}>Delete</button></td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {deleteModal && (
+                <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <h3>Confirm Delete</h3>
+                        <p style={{ color: '#78716C', margin: '16px 0 24px' }}>
+                            Are you sure you want to delete this {deleteModal.type}? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button className="btn btn-outline" onClick={() => setDeleteModal(null)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={confirmDelete}>Delete</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
