@@ -11,6 +11,9 @@ apps_bp = Blueprint('applications', __name__)
 # -------------------------------------------------------------------
 # ROUTE 1: Candidate applies to a job (WITH AI SCREENING)
 # -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# ROUTE 1: Candidate applies to a job (WITH AI SCREENING)
+# -------------------------------------------------------------------
 @apps_bp.route('/applications', methods=['POST'])
 @jwt_required()
 def apply():
@@ -59,6 +62,28 @@ def apply():
             print(f"AI screening failed: {e}")
             # Application still goes through even if AI fails
 
+    # ====================== NEW: BIAS DETECTION ======================
+    anonymized_score = None
+    bias_flagged = 0
+    if resume_text and job_desc and ai_score is not None:
+        try:
+            from ai_screening import anonymize_text
+            # Remove personal details from resume text
+            anonymized_text = anonymize_text(resume_text)
+
+            # Only re‑score if text actually changed
+            if anonymized_text != resume_text:
+                result_anon = screen_resume(anonymized_text, job_desc)
+                anonymized_score = result_anon.get('score')
+
+                # Flag if scores differ by more than 10 points
+                if anonymized_score is not None:
+                    if abs(ai_score - anonymized_score) > 2:
+                        bias_flagged = 1
+        except Exception as e:
+            print(f"Bias detection skipped: {e}")
+    # =================================================================
+
     # Step 6: Create the application record in MySQL
     app = Application(
         candidate_id=candidate.candidate_id,
@@ -67,8 +92,8 @@ def apply():
         status='pending',
         ai_score=ai_score,
         ai_feedback=ai_feedback,
-        keyword_score=result.get('keyword_match')
-
+        anonymized_score=anonymized_score,   # new field
+        bias_flagged=bias_flagged             # new field
     )
     db.session.add(app)
     db.session.commit()
@@ -76,10 +101,9 @@ def apply():
     return jsonify({
         'message': 'Application submitted with AI screening',
         'application_id': app.application_id,
-        'ai_score': ai_score
+        'ai_score': ai_score,
+        'bias_flagged': bias_flagged          # optional, so frontend can react
     }), 201
-
-
 # -------------------------------------------------------------------
 # ROUTE 2: Candidate views their own applications
 # -------------------------------------------------------------------

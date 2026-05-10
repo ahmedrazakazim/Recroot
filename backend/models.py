@@ -61,6 +61,8 @@ class Application(db.Model):
     ai_score = db.Column(db.Numeric(5, 2))
     ai_feedback = db.Column(db.Text)
     keyword_score = db.Column(db.Numeric(5, 2))
+    anonymized_score = db.Column(db.Numeric(5, 2), nullable=True)   # ← new
+    bias_flagged = db.Column(db.Boolean, default=False)             # ← new
     applied_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
 class Interview(db.Model):

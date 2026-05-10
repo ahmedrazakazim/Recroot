@@ -3,6 +3,7 @@ import os
 from groq import Groq
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 def get_keyword_match(resume_text, job_description):
     """Calculate TF-IDF cosine similarity between resume and job description."""
@@ -122,3 +123,42 @@ def _parse_json(raw):
     if raw.endswith("```"):
         raw = raw[:-3]
     return json.loads(raw.strip())
+
+def anonymize_text(text):
+    """Remove personally identifiable information from resume text."""
+    # Remove email addresses
+    text = re.sub(r'\S+@\S+\.\S+', '[EMAIL REDACTED]', text)
+    
+    # Remove phone numbers (various formats)
+    text = re.sub(r'\+?\d[\d\s\-\(\)]{7,}\d', '[PHONE REDACTED]', text)
+    
+    # Remove common Pakistani university names
+    universities = [
+        'FAST', 'NUCES', 'LUMS', 'NUST', 'GIKI', 'IBA', 'Habib University',
+        'University of Karachi', 'University of Lahore', 'Punjab University',
+        'COMSATS', 'SZABIST', 'Bahria University', 'Air University'
+    ]
+    for uni in universities:
+        text = re.sub(uni, '[UNIVERSITY REDACTED]', text, flags=re.IGNORECASE)
+    
+    # Remove gender-indicating words
+    gender_words = [
+        r'\bhe\b', r'\bshe\b', r'\bhis\b', r'\bher\b', r'\bhim\b',
+        r'\bmr\b', r'\bms\b', r'\bmrs\b', r'\bmiss\b', r'\bsir\b',
+        r'\bhimself\b', r'\bherself\b', r'\bmale\b', r'\bfemale\b'
+    ]
+    for word in gender_words:
+        text = re.sub(word, '[PRONOUN REDACTED]', text, flags=re.IGNORECASE)
+    
+    # Remove names (heuristic: lines that look like a name at the top)
+    # This is simple but effective — most resumes start with a name
+    lines = text.split('\n')
+    cleaned_lines = []
+    for i, line in enumerate(lines):
+        # First 3 lines often contain the name — redact short lines
+        if i < 3 and len(line.strip()) < 50 and line.strip():
+            cleaned_lines.append('[NAME REDACTED]')
+        else:
+            cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)

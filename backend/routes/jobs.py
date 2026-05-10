@@ -143,7 +143,8 @@ def job_applicants(job_id):
             'status': a.status,
             'ai_score': float(a.ai_score) if a.ai_score else None,
             'ai_feedback': a.ai_feedback,
-            'applied_at': str(a.applied_at)
+            'applied_at': str(a.applied_at),
+            'bias_flagged': a.bias_flagged or 0
         })
     return jsonify(result), 200
 

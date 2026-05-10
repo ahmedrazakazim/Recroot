@@ -87,7 +87,22 @@ export default function Applicants() {
                         <tbody>
                             {applicants.map(a => (
                                 <tr key={a.application_id}>
-                                    <td style={{ fontWeight: 600 }}>{a.candidate_name}</td>
+                                    <td style={{ fontWeight: 600 }}> 
+                                        {a.candidate_name}
+                                        {a.bias_flagged === true && (
+                                            <span style={{
+                                                background: '#fff7ed',
+                                                color: '#c2410c',
+                                                padding: '2px 8px',
+                                                borderRadius: 12,
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                marginLeft: 8
+                                                }}>
+                                                  ⚠️ Bias Flag
+                                                  </span>
+                                                )}
+                                    </td>
                                     <td>
                                         {a.ai_score ? (
                                             <div className="ai-score">
