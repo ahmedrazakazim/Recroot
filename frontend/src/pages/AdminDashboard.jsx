@@ -37,10 +37,14 @@ export default function AdminDashboard() {
     }
 
     const deleteUser = async (userId) => {
-        if (!confirm('Delete this user?')) return
+    if (!window.confirm('Delete this user permanently? This action cannot be undone.')) return
+    try {
         await axios.delete(`${API}/admin/users/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
         setUsers(prev => prev.filter(u => u.user_id !== userId))
+    } catch (err) {
+        alert(err.response?.data?.error || 'Delete failed')
     }
+}
 
     const createCompany = async (e) => {
         e.preventDefault()
@@ -52,10 +56,14 @@ export default function AdminDashboard() {
     }
 
     const deleteCompany = async (companyId) => {
-        if (!confirm('Delete this company?')) return
+    if (!window.confirm('Delete this company? All associated jobs must be deleted first.')) return
+    try {
         await axios.delete(`${API}/admin/companies/${companyId}`, { headers: { Authorization: `Bearer ${token}` } })
         setCompanies(prev => prev.filter(c => c.company_id !== companyId))
+    } catch (err) {
+        alert(err.response?.data?.error || 'Delete failed')
     }
+}
 
     if (loading) return <div className="loading">Loading admin panel...</div>
 
