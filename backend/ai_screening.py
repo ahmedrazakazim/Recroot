@@ -24,7 +24,7 @@ def screen_resume(resume_text, job_description):
 def _get_score_and_feedback(client, resume_text, job_description):
     """Deterministic call: strict scoring at temperature 0.3."""
     
-        prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting.
+    prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting.
 Analyze this resume against the job description and produce a structured evaluation.
 
 If the job description is vague or minimal, infer the likely requirements from the job title and industry context.
