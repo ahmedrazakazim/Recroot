@@ -60,6 +60,8 @@ class Application(db.Model):
     status = db.Column(db.Enum('pending', 'shortlisted', 'rejected', 'interview_scheduled', 'hired'), default='pending')
     ai_score = db.Column(db.Numeric(5, 2))
     ai_feedback = db.Column(db.Text)
+    anonymized_score = db.Column(db.Numeric(5, 2), nullable=True)   # ← new
+    bias_flagged = db.Column(db.Boolean, default=False) 
     applied_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
 class Interview(db.Model):
