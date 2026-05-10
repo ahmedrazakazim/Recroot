@@ -24,21 +24,24 @@ def screen_resume(resume_text, job_description):
 def _get_score_and_feedback(client, resume_text, job_description):
     """Deterministic call: strict scoring at temperature 0.3."""
     
-    prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting.
+        prompt = f"""You are a professional HR evaluator with 15 years of experience in technical recruiting.
 Analyze this resume against the job description and produce a structured evaluation.
+
+If the job description is vague or minimal, infer the likely requirements from the job title and industry context.
+Always find something meaningful to evaluate — every candidate has strengths and areas to grow.
 
 Return ONLY valid JSON (no markdown, no extra text):
 {{
     "score": <number between 0-100>,
-    "strengths": "<2-3 sentences highlighting specific matching skills>",
-    "gaps": "<2-3 sentences identifying missing qualifications>"
+    "strengths": "<2-3 sentences highlighting skills that match or could transfer to this role>",
+    "gaps": "<2-3 sentences identifying specific areas for improvement relevant to the role>"
 }}
 
-Scoring examples:
-- Candidate matches all required skills + has bonus experience: 85-95
-- Candidate matches most required skills, missing 1-2: 60-75
-- Candidate has relevant background but missing key requirements: 30-55
-- Candidate has no relevant experience: 10-25
+Scoring guidelines:
+- Strong match for explicit or inferred requirements: 80-95
+- Moderate match with transferable skills: 55-75
+- Entry-level or career changer with potential: 30-50
+- Minimal relevance: 10-25
 
 Job Description:
 {job_description}
