@@ -66,7 +66,9 @@ def apply():
         resume_id=resume_id,
         status='pending',
         ai_score=ai_score,
-        ai_feedback=ai_feedback
+        ai_feedback=ai_feedback,
+        keyword_score=result.get('keyword_match')
+
     )
     db.session.add(app)
     db.session.commit()

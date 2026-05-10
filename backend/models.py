@@ -60,6 +60,7 @@ class Application(db.Model):
     status = db.Column(db.Enum('pending', 'shortlisted', 'rejected', 'interview_scheduled', 'hired'), default='pending')
     ai_score = db.Column(db.Numeric(5, 2))
     ai_feedback = db.Column(db.Text)
+    keyword_score = db.Column(db.Numeric(5, 2))
     applied_at = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
 class Interview(db.Model):

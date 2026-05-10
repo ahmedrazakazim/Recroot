@@ -1,23 +1,29 @@
 import json
 import os
 from groq import Groq
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
+def get_keyword_match(resume_text, job_description):
+    """Calculate TF-IDF cosine similarity between resume and job description."""
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform([resume_text, job_description])
+    similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])
+    return round(similarity[0][0] * 100, 2)
+"""Screen resume with Groq. Returns score, strengths, gaps, and interview questions."""
 def screen_resume(resume_text, job_description):
-    """Screen resume with Groq. Returns score, strengths, gaps, and interview questions."""
-    
     client = Groq(api_key=os.getenv('GROQ_API_KEY'))
     
-    # Call 1: Deterministic scoring at temperature 0.3
     score_result = _get_score_and_feedback(client, resume_text, job_description)
-    
-    # Call 2: Creative question generation at temperature 0.7
     questions = _get_interview_questions(client, resume_text, job_description)
+    keyword_match = get_keyword_match(resume_text, job_description)
     
     return {
         'score': score_result['score'],
         'strengths': score_result['strengths'],
         'gaps': score_result['gaps'],
-        'questions': questions
+        'questions': questions,
+        'keyword_match': keyword_match
     }
 
 

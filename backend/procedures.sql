@@ -64,10 +64,10 @@ DELIMITER ;
 -- PROCEDURE 3: Get Ranked Candidates for a Job
 --    Weighted formula: 0.60*AI_score + 0.20*experience + 0.10*education + 0.10*keyword match
 -- ---------------------------------------------------------------
+DROP PROCEDURE IF EXISTS sp_get_ranked_candidates;
+
 DELIMITER //
-CREATE PROCEDURE sp_get_ranked_candidates(
-    IN p_job_id INT
-)
+CREATE PROCEDURE sp_get_ranked_candidates(IN p_job_id INT)
 BEGIN
     SELECT 
         a.application_id,
@@ -75,12 +75,11 @@ BEGIN
         a.ai_score,
         c.experience_years,
         c.education,
-        -- Weighted ranking formula
         (0.60 * COALESCE(a.ai_score, 0)) +
         (0.20 * LEAST(COALESCE(c.experience_years, 0) * 10, 100)) +
         (0.10 * CASE WHEN c.education IS NOT NULL AND c.education LIKE '%BS%' THEN 80
                       WHEN c.education IS NOT NULL THEN 60 ELSE 0 END) +
-        (0.10 * 50) AS weighted_score,
+        (0.10 * COALESCE(a.keyword_score, 50)) AS weighted_score,
         a.status,
         a.ai_feedback
     FROM applications a
