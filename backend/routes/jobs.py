@@ -137,14 +137,17 @@ def job_applicants(job_id):
     for a in apps:
         candidate = Candidate.query.get(a.candidate_id)
         user = User.query.get(candidate.user_id) if candidate else None
+        print(f"DEBUG: app {a.application_id} bias_flagged={a.bias_flagged}")
         result.append({
             'application_id': a.application_id,
             'candidate_name': user.full_name if user else 'Unknown',
             'status': a.status,
             'ai_score': float(a.ai_score) if a.ai_score else None,
             'ai_feedback': a.ai_feedback,
-            'applied_at': str(a.applied_at)
+            'applied_at': str(a.applied_at),
+            'bias_flagged': a.bias_flagged or 0
         })
+    
     return jsonify(result), 200
 
 
