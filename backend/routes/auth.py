@@ -111,20 +111,6 @@ def update_user_role(user_id):
     db.session.commit()
     return jsonify({'message': 'Role updated'}), 200
 
-# Delete user
-@auth_bp.route('/admin/users/<int:user_id>', methods=['DELETE'])
-@jwt_required()
-def delete_user(user_id):
-    admin_id = int(get_jwt_identity())
-    admin = User.query.get(admin_id)
-    if admin.role != 'admin':
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': 'User deleted'}), 200
-
 
     # Get notifications for logged-in user
 @auth_bp.route('/notifications', methods=['GET'])
@@ -202,3 +188,40 @@ def delete_company(company_id):
     db.session.delete(company)
     db.session.commit()
     return jsonify({'message': 'Company deleted'}), 200
+
+#delete user
+@auth_bp.route('/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    from models import Candidate, Application, Company, Resume, Notification
+    admin_id = int(get_jwt_identity())
+    admin = User.query.get(admin_id)
+    if admin.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.user_id == admin_id:
+        return jsonify({'error': 'Cannot delete yourself'}), 400
+    
+    # Delete related records in order
+    candidate = Candidate.query.filter_by(user_id=user_id).first()
+    if candidate:
+        # Delete applications
+        Application.query.filter_by(candidate_id=candidate.candidate_id).delete()
+        # Delete resumes
+        Resume.query.filter_by(candidate_id=candidate.candidate_id).delete()
+        # Delete candidate profile
+        db.session.delete(candidate)
+    
+    # Delete company if recruiter
+    Company.query.filter_by(user_id=user_id).delete()
+    
+    # Delete notifications
+    Notification.query.filter_by(user_id=user_id).delete()
+    
+    # Finally delete user
+    db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User deleted'}), 200
