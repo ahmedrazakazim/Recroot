@@ -149,7 +149,7 @@ def update_status(app_id):
     if 'ai_feedback' in data:
         app.ai_feedback = data['ai_feedback']
     db.session.commit()
-
+    job = Job.query.get(app.job_id)
     # Send email via n8n Gmail workflow
     try:
         from models import User, Candidate
@@ -162,6 +162,7 @@ def update_status(app_id):
                     'candidate_name': user.full_name,
                     'candidate_email': user.email,
                     'job_id': app.job_id,
+                    'job_title': job.title if job else 'Unknown',
                     'new_status': app.status
                 }, timeout=5)
     except Exception as e:
@@ -187,7 +188,7 @@ def schedule_interview(app_id):
     )
     db.session.add(interview)
     db.session.commit()
-    
+    job = Job.query.get(app.job_id)
     # Trigger n8n
     try:
         from models import User, Candidate
@@ -200,6 +201,7 @@ def schedule_interview(app_id):
                     'candidate_name': user.full_name,
                     'candidate_email': user.email,
                     'job_id': app.job_id,
+                    'job_title': job.title if job else 'Unknown',
                     'scheduled_at': data.get('scheduled_at')
                 }, timeout=5)
     except Exception as e:
