@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
@@ -17,11 +17,19 @@ def create_app():
     @app.after_request
     def after_request(response):
         response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+        return response
+
+    @app.errorhandler(401)
+    @app.errorhandler(404)
+    @app.errorhandler(500)
+    def handle_error(error):
+        response = jsonify({"error": str(error)})
+        response.status_code = error.code if hasattr(error, 'code') else 500
+        response.headers['Access-Control-Allow-Origin'] = '*'
         return response
     
-    CORS(app)
     db.init_app(app)
     JWTManager(app)
     
