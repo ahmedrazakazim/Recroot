@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API = 'http://127.0.0.1:5000/api'
+const API = 'https://recroot-xd7u.onrender.com/api'
 
 export default function Register() {
     const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'candidate' })

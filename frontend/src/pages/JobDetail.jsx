@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-const API = 'http://127.0.0.1:5000/api'
+const API = 'https://recroot-xd7u.onrender.com/api'
 
 export default function JobDetail() {
     const { id } = useParams()
